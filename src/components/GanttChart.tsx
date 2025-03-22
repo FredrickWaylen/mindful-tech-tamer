@@ -287,6 +287,7 @@ const GanttChart = () => {
           {format(task.startDate, 'HH:mm')} - {format(task.endDate, 'HH:mm')}
         </p>
         <p className="text-xs">Progress: {task.progress}%</p>
+        <p className="text-xs">Category: {task.category}</p>
       </div>
     );
   };
@@ -319,7 +320,7 @@ const GanttChart = () => {
                       <div className="flex items-center gap-2">
                         {task.milestone ? 
                           <Diamond className="h-4 w-4 text-red-500" /> : 
-                          <div className="h-3 w-3 rounded-sm bg-primary" />
+                          <div className={`h-3 w-3 rounded-sm ${task.category === 'Setup' ? 'bg-blue-500' : task.category === 'Security' ? 'bg-amber-500' : task.category === 'Testing' ? 'bg-green-500' : task.category === 'Optimization' ? 'bg-purple-500' : 'bg-primary'}`} />
                         }
                         <span>{task.name}</span>
                       </div>
@@ -387,10 +388,18 @@ const GanttChart = () => {
                           );
                         }
                         
-                        // Regular task bar
+                        // Regular task bar with color based on category
+                        let fill = "#4f46e5"; // Default color
+                        if (task) {
+                          if (task.category === 'Setup') fill = "#3b82f6"; // Blue
+                          else if (task.category === 'Security') fill = "#f59e0b"; // Amber
+                          else if (task.category === 'Testing') fill = "#10b981"; // Green
+                          else if (task.category === 'Optimization') fill = "#8b5cf6"; // Purple
+                        }
+                        
                         return (
                           <g>
-                            <rect x={x} y={y} width={width} height={height} fill="var(--color-task)" rx={4} ry={4} />
+                            <rect x={x} y={y} width={width} height={height} fill={fill} rx={4} ry={4} />
                             
                             {/* Progress overlay */}
                             {task && task.progress > 0 && (
@@ -435,27 +444,30 @@ const GanttChart = () => {
                 </ResponsiveContainer>
               </ChartContainer>
               
-              {/* Dependencies visualization - simple lines connecting tasks */}
-              <svg 
-                className="absolute top-0 left-0 w-full h-full pointer-events-none" 
-                style={{ zIndex: 10 }}
-              >
+              {/* Dependencies visualization */}
+              <svg className="absolute top-0 left-0 w-full h-full pointer-events-none" style={{ zIndex: 10 }}>
                 {processedTasks.map(task => {
-                  if (!task.dependencies.length) return null;
+                  if (!task.dependencies?.length) return null;
                   
                   return task.dependencies.map(depId => {
                     const dependencyTask = processedTasks.find(t => t.id === depId);
                     if (!dependencyTask) return null;
                     
-                    // You would need to calculate actual positions for dependencies
-                    // This is a simplified placeholder
+                    // Calculate positions for dependency lines
+                    // This is a basic visualization and would need actual DOM positions for accuracy
+                    const taskIndex = processedTasks.findIndex(t => t.id === task.id);
+                    const depIndex = processedTasks.findIndex(t => t.id === depId);
+                    
+                    if (taskIndex < 0 || depIndex < 0) return null;
+                    
+                    // Simple visualization with approximated positions
                     return (
                       <line 
                         key={`${task.id}-${depId}`}
-                        x1={0}
-                        y1={0}
-                        x2={0}
-                        y2={0}
+                        x1={100}  // Approximation
+                        y1={(depIndex + 1) * 40 + 20}  // Approximation
+                        x2={100}  // Approximation
+                        y2={(taskIndex + 1) * 40 + 20}  // Approximation
                         stroke="var(--color-dependency)"
                         strokeWidth={1}
                         strokeDasharray="4 2"
@@ -468,10 +480,26 @@ const GanttChart = () => {
           </ScrollArea>
           
           {/* Legend */}
-          <div className="flex items-center justify-center gap-6 mt-4 px-4">
+          <div className="flex flex-wrap items-center justify-center gap-6 mt-4 px-4">
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-sm bg-blue-500"></div>
+              <span className="text-sm">Setup</span>
+            </div>
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-sm bg-primary"></div>
-              <span className="text-sm">Task</span>
+              <span className="text-sm">Development</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-sm bg-amber-500"></div>
+              <span className="text-sm">Security</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-sm bg-purple-500"></div>
+              <span className="text-sm">Optimization</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-sm bg-green-500"></div>
+              <span className="text-sm">Testing</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-sm bg-indigo-400"></div>
