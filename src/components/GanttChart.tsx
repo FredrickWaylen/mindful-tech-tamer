@@ -292,18 +292,18 @@ const GanttChart = () => {
   };
 
   return (
-    <div className="w-full h-full border rounded-lg shadow-sm overflow-hidden">
+    <div className="w-full border rounded-lg shadow-sm overflow-hidden">
       <h2 className="text-xl font-bold p-4 border-b">Project Schedule - February 22, 2024</h2>
       
-      <div className="flex flex-col h-auto">
-        {/* Time Slots Header */}
+      <div className="flex flex-col">
+        {/* Time Slots Header - Fixed size to ensure alignment */}
         <div className="flex border-b">
-          <div className="w-1/4 min-w-[250px] border-r p-2">
+          <div className="w-[200px] min-w-[200px] border-r p-2">
             <h3 className="font-semibold">Tasks</h3>
           </div>
-          <div className="w-3/4 flex overflow-x-auto">
+          <div className="flex-1 flex">
             {timeSlots.map((slot, index) => (
-              <div key={index} className="px-2 py-1 min-w-20 text-center text-xs font-medium border-r">
+              <div key={index} className="flex-1 px-1 py-1 text-center text-[10px] font-medium border-r whitespace-nowrap overflow-hidden">
                 {slot.label}
               </div>
             ))}
@@ -311,15 +311,14 @@ const GanttChart = () => {
         </div>
         
         <div className="flex">
-          {/* Tasks List */}
-          <div className="w-1/4 min-w-[250px] border-r">
-            <div className="h-auto">
+          {/* Tasks List - Fixed width */}
+          <div className="w-[200px] min-w-[200px] border-r max-h-[600px]">
+            <div className="h-full">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[50px]">ID</TableHead>
-                    <TableHead>Task</TableHead>
-                    <TableHead className="text-right">Duration</TableHead>
+                    <TableHead className="w-[40px] text-xs p-2">ID</TableHead>
+                    <TableHead className="text-xs p-2">Task</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -328,21 +327,23 @@ const GanttChart = () => {
                       key={task.id} 
                       className={`hover:bg-muted/80 ${selectedTask === task.id ? 'bg-muted' : ''}`}
                       onClick={() => setSelectedTask(selectedTask === task.id ? null : task.id)}
-                      style={{ height: '40px' }}
+                      style={{ height: '38px' }}
                     >
-                      <TableCell className="font-medium">{task.id}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
+                      <TableCell className="font-medium text-xs p-2">{task.id}</TableCell>
+                      <TableCell className="p-2">
+                        <div className="flex items-center gap-1">
                           {task.milestone ? 
-                            <Diamond className="h-4 w-4 text-red-500" /> : 
-                            <div className={`h-3 w-3 rounded-sm ${task.category === 'Setup' ? 'bg-blue-500' : task.category === 'Security' ? 'bg-amber-500' : task.category === 'Testing' ? 'bg-green-500' : task.category === 'Optimization' ? 'bg-purple-500' : 'bg-primary'}`} />
+                            <Diamond className="h-3 w-3 text-red-500" /> : 
+                            <div className={`h-2 w-2 rounded-sm ${
+                              task.category === 'Setup' ? 'bg-blue-500' : 
+                              task.category === 'Security' ? 'bg-amber-500' : 
+                              task.category === 'Testing' ? 'bg-green-500' : 
+                              task.category === 'Optimization' ? 'bg-purple-500' : 
+                              'bg-primary'
+                            }`} />
                           }
-                          <span className="truncate max-w-[120px]">{task.name}</span>
+                          <span className="truncate text-xs max-w-[120px]">{task.name}</span>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {task.milestone ? 'Milestone' : 
-                          `${Math.round(task.duration / (1000 * 60))} min`}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -351,9 +352,9 @@ const GanttChart = () => {
             </div>
           </div>
           
-          {/* Gantt Chart */}
-          <div className="w-3/4 p-4 relative">
-            <div className="h-[640px]">
+          {/* Gantt Chart - Takes remaining width */}
+          <div className="flex-1 relative p-0">
+            <div className="h-[600px]">
               <ChartContainer 
                 config={chartConfig} 
                 className="h-full"
@@ -362,8 +363,8 @@ const GanttChart = () => {
                   <BarChart
                     data={processedTasks}
                     layout="vertical"
-                    margin={{ top: 20, right: 50, bottom: 20, left: 10 }}
-                    barSize={20}
+                    margin={{ top: 20, right: 30, bottom: 20, left: 0 }}
+                    barSize={16}
                   >
                     <XAxis
                       type="number"
@@ -372,6 +373,8 @@ const GanttChart = () => {
                       tickFormatter={(value) => format(new Date(value), 'HH:mm')}
                       ticks={generateTicks()}
                       stroke="#888"
+                      fontSize={10}
+                      tickMargin={5}
                     />
                     <YAxis
                       type="category"
@@ -394,9 +397,18 @@ const GanttChart = () => {
                           return (
                             <g>
                               <polygon
-                                points={`${x},${y + height/2} ${x + 10},${y} ${x + 20},${y + height/2} ${x + 10},${y + height}`}
+                                points={`${x},${y + height/2} ${x + 8},${y} ${x + 16},${y + height/2} ${x + 8},${y + height}`}
                                 fill="var(--color-milestone)"
                               />
+                              <text
+                                x={x + width + 4}
+                                y={y + height/2 + 4}
+                                fill="#333"
+                                fontSize="10"
+                                textAnchor="start"
+                              >
+                                {task.name}
+                              </text>
                             </g>
                           );
                         }
@@ -426,6 +438,20 @@ const GanttChart = () => {
                                 ry={4}
                               />
                             )}
+                            
+                            {/* Task label on bar if wide enough */}
+                            {width > 50 && (
+                              <text
+                                x={x + 4}
+                                y={y + height/2 + 4}
+                                fill="#fff"
+                                fontSize="9"
+                                textAnchor="start"
+                              >
+                                {task?.name.substring(0, Math.floor(width/6))}
+                                {task && task.name.length > Math.floor(width/6) ? "..." : ""}
+                              </text>
+                            )}
                           </g>
                         );
                       }}
@@ -442,6 +468,7 @@ const GanttChart = () => {
                           value: 'Now',
                           position: 'top',
                           fill: 'var(--color-currentTime)',
+                          fontSize: 10
                         }}
                       />
                     )}
@@ -476,14 +503,14 @@ const GanttChart = () => {
                     if (taskIndex < 0 || depIndex < 0) return null;
                     
                     // Calculate task coordinates for drawing dependency lines
-                    const depY = depIndex * 40 + 40;
-                    const taskY = taskIndex * 40 + 40;
+                    const depY = depIndex * 38 + 38;
+                    const taskY = taskIndex * 38 + 38;
                     
                     // Calculate X coordinates based on task time positions
-                    const depTaskEndX = 270 + ((dependencyTask.endTime - timeRange.startTime) / 
-                      (timeRange.endTime - timeRange.startTime)) * 800;
-                    const taskStartX = 270 + ((task.startTime - timeRange.startTime) / 
-                      (timeRange.endTime - timeRange.startTime)) * 800;
+                    const depTaskEndX = 200 + ((dependencyTask.endTime - timeRange.startTime) / 
+                      (timeRange.endTime - timeRange.startTime)) * (window.innerWidth - 250);
+                    const taskStartX = 200 + ((task.startTime - timeRange.startTime) / 
+                      (timeRange.endTime - timeRange.startTime)) * (window.innerWidth - 250);
                     
                     // Path for curved dependency line
                     const path = `
@@ -506,7 +533,7 @@ const GanttChart = () => {
                         <text
                           x={(depTaskEndX + taskStartX) / 2}
                           y={(depY + taskY) / 2 - 5}
-                          fontSize="10"
+                          fontSize="8"
                           textAnchor="middle"
                           fill="var(--color-dependency)"
                           className="pointer-events-auto cursor-move"
@@ -526,38 +553,38 @@ const GanttChart = () => {
       </div>
       
       {/* Legend */}
-      <div className="flex flex-wrap items-center justify-center gap-6 mt-4 px-4 pb-4">
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded-sm bg-blue-500"></div>
-          <span className="text-sm">Setup</span>
+      <div className="flex flex-wrap items-center justify-center gap-4 mt-2 px-4 pb-2">
+        <div className="flex items-center gap-1">
+          <div className="h-2 w-2 rounded-sm bg-blue-500"></div>
+          <span className="text-xs">Setup</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded-sm bg-primary"></div>
-          <span className="text-sm">Development</span>
+        <div className="flex items-center gap-1">
+          <div className="h-2 w-2 rounded-sm bg-primary"></div>
+          <span className="text-xs">Dev</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded-sm bg-amber-500"></div>
-          <span className="text-sm">Security</span>
+        <div className="flex items-center gap-1">
+          <div className="h-2 w-2 rounded-sm bg-amber-500"></div>
+          <span className="text-xs">Security</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded-sm bg-purple-500"></div>
-          <span className="text-sm">Optimization</span>
+        <div className="flex items-center gap-1">
+          <div className="h-2 w-2 rounded-sm bg-purple-500"></div>
+          <span className="text-xs">Optimize</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded-sm bg-green-500"></div>
-          <span className="text-sm">Testing</span>
+        <div className="flex items-center gap-1">
+          <div className="h-2 w-2 rounded-sm bg-green-500"></div>
+          <span className="text-xs">Testing</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded-sm bg-indigo-400"></div>
-          <span className="text-sm">Progress</span>
+        <div className="flex items-center gap-1">
+          <div className="h-2 w-2 rounded-sm bg-indigo-400"></div>
+          <span className="text-xs">Progress</span>
         </div>
-        <div className="flex items-center gap-2">
-          <Diamond className="h-4 w-4 text-red-500" />
-          <span className="text-sm">Milestone</span>
+        <div className="flex items-center gap-1">
+          <Diamond className="h-3 w-3 text-red-500" />
+          <span className="text-xs">Milestone</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="h-3 border-l-2 border-dashed border-green-500"></div>
-          <span className="text-sm">Current Time</span>
+        <div className="flex items-center gap-1">
+          <div className="h-2 border-l-2 border-dashed border-green-500"></div>
+          <span className="text-xs">Current Time</span>
         </div>
       </div>
     </div>
