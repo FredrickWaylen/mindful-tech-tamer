@@ -2,15 +2,13 @@
 import React, { useState } from 'react';
 import { ChartContainer, ChartTooltipContent, ChartTooltip } from "@/components/ui/chart";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   ResponsiveContainer, 
   BarChart, 
   Bar, 
   XAxis, 
   YAxis, 
-  ReferenceLine,
-  Line
+  ReferenceLine, 
 } from 'recharts';
 import { format, parseISO, isWithinInterval, addMinutes } from 'date-fns';
 import { Diamond } from 'lucide-react';
@@ -234,6 +232,7 @@ const generateTimeSlots = (startDate: Date, endDate: Date, intervalMinutes = 30)
 
 const GanttChart = () => {
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
+  const [draggingConnection, setDraggingConnection] = useState(false);
   
   const processedTasks = prepareChartData(taskData);
   const timeRange = getTimeRange(taskData);
@@ -296,54 +295,68 @@ const GanttChart = () => {
     <div className="w-full h-full border rounded-lg shadow-sm overflow-hidden">
       <h2 className="text-xl font-bold p-4 border-b">Project Schedule - February 22, 2024</h2>
       
-      <div className="flex">
-        {/* Tasks List */}
-        <div className="w-1/4 min-w-[250px] border-r">
-          <ScrollArea className="h-[600px]">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[50px]">ID</TableHead>
-                  <TableHead>Task</TableHead>
-                  <TableHead className="text-right">Duration</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {processedTasks.map((task) => (
-                  <TableRow 
-                    key={task.id} 
-                    className={`cursor-pointer hover:bg-muted/80 ${selectedTask === task.id ? 'bg-muted' : ''}`}
-                    onClick={() => setSelectedTask(selectedTask === task.id ? null : task.id)}
-                  >
-                    <TableCell className="font-medium">{task.id}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {task.milestone ? 
-                          <Diamond className="h-4 w-4 text-red-500" /> : 
-                          <div className={`h-3 w-3 rounded-sm ${task.category === 'Setup' ? 'bg-blue-500' : task.category === 'Security' ? 'bg-amber-500' : task.category === 'Testing' ? 'bg-green-500' : task.category === 'Optimization' ? 'bg-purple-500' : 'bg-primary'}`} />
-                        }
-                        <span>{task.name}</span>
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-1">{task.category}</div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {task.milestone ? 'Milestone' : 
-                        `${Math.round(task.duration / (1000 * 60))} min`}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </ScrollArea>
+      <div className="flex flex-col h-auto">
+        {/* Time Slots Header */}
+        <div className="flex border-b">
+          <div className="w-1/4 min-w-[250px] border-r p-2">
+            <h3 className="font-semibold">Tasks</h3>
+          </div>
+          <div className="w-3/4 flex overflow-x-auto">
+            {timeSlots.map((slot, index) => (
+              <div key={index} className="px-2 py-1 min-w-20 text-center text-xs font-medium border-r">
+                {slot.label}
+              </div>
+            ))}
+          </div>
         </div>
         
-        {/* Gantt Chart */}
-        <div className="w-3/4 p-4">
-          <ScrollArea className="h-[600px]">
-            <div className="min-w-[800px]">
+        <div className="flex">
+          {/* Tasks List */}
+          <div className="w-1/4 min-w-[250px] border-r">
+            <div className="h-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[50px]">ID</TableHead>
+                    <TableHead>Task</TableHead>
+                    <TableHead className="text-right">Duration</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {processedTasks.map((task) => (
+                    <TableRow 
+                      key={task.id} 
+                      className={`hover:bg-muted/80 ${selectedTask === task.id ? 'bg-muted' : ''}`}
+                      onClick={() => setSelectedTask(selectedTask === task.id ? null : task.id)}
+                      style={{ height: '40px' }}
+                    >
+                      <TableCell className="font-medium">{task.id}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {task.milestone ? 
+                            <Diamond className="h-4 w-4 text-red-500" /> : 
+                            <div className={`h-3 w-3 rounded-sm ${task.category === 'Setup' ? 'bg-blue-500' : task.category === 'Security' ? 'bg-amber-500' : task.category === 'Testing' ? 'bg-green-500' : task.category === 'Optimization' ? 'bg-purple-500' : 'bg-primary'}`} />
+                          }
+                          <span className="truncate max-w-[120px]">{task.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {task.milestone ? 'Milestone' : 
+                          `${Math.round(task.duration / (1000 * 60))} min`}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+          
+          {/* Gantt Chart */}
+          <div className="w-3/4 p-4 relative">
+            <div className="h-[640px]">
               <ChartContainer 
                 config={chartConfig} 
-                className="h-[600px]"
+                className="h-full"
               >
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
@@ -444,8 +457,11 @@ const GanttChart = () => {
                 </ResponsiveContainer>
               </ChartContainer>
               
-              {/* Dependencies visualization */}
-              <svg className="absolute top-0 left-0 w-full h-full pointer-events-none" style={{ zIndex: 10 }}>
+              {/* Dependencies visualization with draggable connections */}
+              <svg 
+                className="absolute top-0 left-0 w-full h-full pointer-events-none" 
+                style={{ zIndex: 10 }}
+              >
                 {processedTasks.map(task => {
                   if (!task.dependencies?.length) return null;
                   
@@ -453,67 +469,95 @@ const GanttChart = () => {
                     const dependencyTask = processedTasks.find(t => t.id === depId);
                     if (!dependencyTask) return null;
                     
-                    // Calculate positions for dependency lines
-                    // This is a basic visualization and would need actual DOM positions for accuracy
+                    // Calculate task positions based on their index
                     const taskIndex = processedTasks.findIndex(t => t.id === task.id);
                     const depIndex = processedTasks.findIndex(t => t.id === depId);
                     
                     if (taskIndex < 0 || depIndex < 0) return null;
                     
-                    // Simple visualization with approximated positions
+                    // Calculate task coordinates for drawing dependency lines
+                    const depY = depIndex * 40 + 40;
+                    const taskY = taskIndex * 40 + 40;
+                    
+                    // Calculate X coordinates based on task time positions
+                    const depTaskEndX = 270 + ((dependencyTask.endTime - timeRange.startTime) / 
+                      (timeRange.endTime - timeRange.startTime)) * 800;
+                    const taskStartX = 270 + ((task.startTime - timeRange.startTime) / 
+                      (timeRange.endTime - timeRange.startTime)) * 800;
+                    
+                    // Path for curved dependency line
+                    const path = `
+                      M ${depTaskEndX} ${depY}
+                      C ${depTaskEndX + 20} ${depY},
+                        ${taskStartX - 20} ${taskY},
+                        ${taskStartX} ${taskY}
+                    `;
+                    
                     return (
-                      <line 
-                        key={`${task.id}-${depId}`}
-                        x1={100}  // Approximation
-                        y1={(depIndex + 1) * 40 + 20}  // Approximation
-                        x2={100}  // Approximation
-                        y2={(taskIndex + 1) * 40 + 20}  // Approximation
-                        stroke="var(--color-dependency)"
-                        strokeWidth={1}
-                        strokeDasharray="4 2"
-                      />
+                      <g key={`${task.id}-${depId}`} className="dependency-line">
+                        <path
+                          d={path}
+                          stroke="var(--color-dependency)"
+                          strokeWidth={1.5}
+                          strokeDasharray="4 2"
+                          fill="none"
+                          className="transition-all duration-300 hover:stroke-primary hover:stroke-2"
+                        />
+                        <text
+                          x={(depTaskEndX + taskStartX) / 2}
+                          y={(depY + taskY) / 2 - 5}
+                          fontSize="10"
+                          textAnchor="middle"
+                          fill="var(--color-dependency)"
+                          className="pointer-events-auto cursor-move"
+                          onMouseDown={() => setDraggingConnection(true)}
+                          onMouseUp={() => setDraggingConnection(false)}
+                        >
+                          {format(dependencyTask.endDate, 'HH:mm')} → {format(task.startDate, 'HH:mm')}
+                        </text>
+                      </g>
                     );
                   });
                 })}
               </svg>
             </div>
-          </ScrollArea>
-          
-          {/* Legend */}
-          <div className="flex flex-wrap items-center justify-center gap-6 mt-4 px-4">
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-sm bg-blue-500"></div>
-              <span className="text-sm">Setup</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-sm bg-primary"></div>
-              <span className="text-sm">Development</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-sm bg-amber-500"></div>
-              <span className="text-sm">Security</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-sm bg-purple-500"></div>
-              <span className="text-sm">Optimization</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-sm bg-green-500"></div>
-              <span className="text-sm">Testing</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-sm bg-indigo-400"></div>
-              <span className="text-sm">Progress</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Diamond className="h-4 w-4 text-red-500" />
-              <span className="text-sm">Milestone</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-3 border-l-2 border-dashed border-green-500"></div>
-              <span className="text-sm">Current Time</span>
-            </div>
           </div>
+        </div>
+      </div>
+      
+      {/* Legend */}
+      <div className="flex flex-wrap items-center justify-center gap-6 mt-4 px-4 pb-4">
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-3 rounded-sm bg-blue-500"></div>
+          <span className="text-sm">Setup</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-3 rounded-sm bg-primary"></div>
+          <span className="text-sm">Development</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-3 rounded-sm bg-amber-500"></div>
+          <span className="text-sm">Security</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-3 rounded-sm bg-purple-500"></div>
+          <span className="text-sm">Optimization</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-3 rounded-sm bg-green-500"></div>
+          <span className="text-sm">Testing</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-3 rounded-sm bg-indigo-400"></div>
+          <span className="text-sm">Progress</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Diamond className="h-4 w-4 text-red-500" />
+          <span className="text-sm">Milestone</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-3 border-l-2 border-dashed border-green-500"></div>
+          <span className="text-sm">Current Time</span>
         </div>
       </div>
     </div>
