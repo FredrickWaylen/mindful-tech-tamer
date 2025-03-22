@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ChartContainer, ChartTooltipContent, ChartTooltip } from "@/components/ui/chart";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
@@ -298,7 +297,7 @@ const GanttChart = () => {
       <div className="flex flex-col">
         {/* Time Slots Header - Fixed size to ensure alignment */}
         <div className="flex border-b">
-          <div className="w-[200px] min-w-[200px] border-r p-2">
+          <div className="w-[280px] min-w-[280px] border-r p-2">
             <h3 className="font-semibold">Tasks</h3>
           </div>
           <div className="flex-1 flex">
@@ -310,247 +309,181 @@ const GanttChart = () => {
           </div>
         </div>
         
-        <div className="flex">
-          {/* Tasks List - Fixed width */}
-          <div className="w-[200px] min-w-[200px] border-r max-h-[600px]">
-            <div className="h-full">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40px] text-xs p-2">ID</TableHead>
-                    <TableHead className="text-xs p-2">Task</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {processedTasks.map((task) => (
-                    <TableRow 
-                      key={task.id} 
-                      className={`hover:bg-muted/80 ${selectedTask === task.id ? 'bg-muted' : ''}`}
-                      onClick={() => setSelectedTask(selectedTask === task.id ? null : task.id)}
-                      style={{ height: '38px' }}
-                    >
-                      <TableCell className="font-medium text-xs p-2">{task.id}</TableCell>
-                      <TableCell className="p-2">
-                        <div className="flex items-center gap-1">
-                          {task.milestone ? 
-                            <Diamond className="h-3 w-3 text-red-500" /> : 
-                            <div className={`h-2 w-2 rounded-sm ${
-                              task.category === 'Setup' ? 'bg-blue-500' : 
-                              task.category === 'Security' ? 'bg-amber-500' : 
-                              task.category === 'Testing' ? 'bg-green-500' : 
-                              task.category === 'Optimization' ? 'bg-purple-500' : 
-                              'bg-primary'
-                            }`} />
-                          }
-                          <span className="truncate text-xs max-w-[120px]">{task.name}</span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-          
-          {/* Gantt Chart - Takes remaining width */}
-          <div className="flex-1 relative p-0">
-            <div className="h-[600px]">
-              <ChartContainer 
-                config={chartConfig} 
-                className="h-full"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={processedTasks}
-                    layout="vertical"
-                    margin={{ top: 20, right: 30, bottom: 20, left: 0 }}
-                    barSize={16}
-                  >
-                    <XAxis
-                      type="number"
-                      dataKey="startTime"
-                      domain={[timeRange.startTime, timeRange.endTime]}
-                      tickFormatter={(value) => format(new Date(value), 'HH:mm')}
-                      ticks={generateTicks()}
-                      stroke="#888"
-                      fontSize={10}
-                      tickMargin={5}
-                    />
-                    <YAxis
-                      type="category"
-                      dataKey="id"
-                      hide
-                    />
-                    
-                    {/* Render task bars */}
-                    <Bar
-                      dataKey="duration"
-                      fill="var(--color-task)"
-                      background={{ fill: '#eee' }}
-                      radius={[4, 4, 4, 4]}
-                      shape={(props: any) => {
-                        const { x, y, width, height, payload } = props;
-                        const task = processedTasks.find(t => t.id === payload.id);
-                        
-                        if (task?.milestone) {
-                          // Render milestone as diamond
-                          return (
-                            <g>
-                              <polygon
-                                points={`${x},${y + height/2} ${x + 8},${y} ${x + 16},${y + height/2} ${x + 8},${y + height}`}
-                                fill="var(--color-milestone)"
-                              />
-                              <text
-                                x={x + width + 4}
-                                y={y + height/2 + 4}
-                                fill="#333"
-                                fontSize="10"
-                                textAnchor="start"
-                              >
-                                {task.name}
-                              </text>
-                            </g>
-                          );
-                        }
-                        
-                        // Regular task bar with color based on category
-                        let fill = "#4f46e5"; // Default color
-                        if (task) {
-                          if (task.category === 'Setup') fill = "#3b82f6"; // Blue
-                          else if (task.category === 'Security') fill = "#f59e0b"; // Amber
-                          else if (task.category === 'Testing') fill = "#10b981"; // Green
-                          else if (task.category === 'Optimization') fill = "#8b5cf6"; // Purple
-                        }
-                        
-                        return (
-                          <g>
-                            <rect x={x} y={y} width={width} height={height} fill={fill} rx={4} ry={4} />
-                            
-                            {/* Progress overlay */}
-                            {task && task.progress > 0 && (
-                              <rect 
-                                x={x} 
-                                y={y} 
-                                width={width * (task.progress / 100)} 
-                                height={height} 
-                                fill="var(--color-progress)"
-                                rx={4} 
-                                ry={4}
-                              />
-                            )}
-                            
-                            {/* Task label on bar if wide enough */}
-                            {width > 50 && (
-                              <text
-                                x={x + 4}
-                                y={y + height/2 + 4}
-                                fill="#fff"
-                                fontSize="9"
-                                textAnchor="start"
-                              >
-                                {task?.name.substring(0, Math.floor(width/6))}
-                                {task && task.name.length > Math.floor(width/6) ? "..." : ""}
-                              </text>
-                            )}
-                          </g>
-                        );
-                      }}
-                    />
-                    
-                    {/* Current time reference line */}
-                    {showCurrentTime && (
-                      <ReferenceLine
-                        x={currentTime}
-                        stroke="var(--color-currentTime)"
-                        strokeWidth={2}
-                        strokeDasharray="3 3"
-                        label={{
-                          value: 'Now',
-                          position: 'top',
-                          fill: 'var(--color-currentTime)',
-                          fontSize: 10
-                        }}
-                      />
-                    )}
-                    
-                    <ChartTooltip
-                      content={
-                        <ChartTooltipContent 
-                          formatter={taskFormatter}
-                        />
-                      }
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
+        <div className="flex flex-col">
+          {processedTasks.map((task, index) => (
+            <div 
+              key={task.id}
+              className={`flex w-full hover:bg-muted/50 ${selectedTask === task.id ? 'bg-muted/80' : ''}`}
+              onClick={() => setSelectedTask(selectedTask === task.id ? null : task.id)}
+            >
+              {/* Task Name Column */}
+              <div className="w-[280px] min-w-[280px] border-r p-2 flex items-center">
+                <div className="flex items-center gap-2 w-full">
+                  <span className="text-xs font-medium w-[24px]">{task.id}</span>
+                  {task.milestone ? 
+                    <Diamond className="h-3 w-3 text-red-500 flex-shrink-0" /> : 
+                    <div className={`h-2 w-2 rounded-sm flex-shrink-0 ${
+                      task.category === 'Setup' ? 'bg-blue-500' : 
+                      task.category === 'Security' ? 'bg-amber-500' : 
+                      task.category === 'Testing' ? 'bg-green-500' : 
+                      task.category === 'Optimization' ? 'bg-purple-500' : 
+                      'bg-primary'
+                    }`} />
+                  }
+                  <span className="text-xs truncate">{task.name}</span>
+                </div>
+              </div>
               
-              {/* Dependencies visualization with draggable connections */}
-              <svg 
-                className="absolute top-0 left-0 w-full h-full pointer-events-none" 
-                style={{ zIndex: 10 }}
-              >
-                {processedTasks.map(task => {
-                  if (!task.dependencies?.length) return null;
-                  
-                  return task.dependencies.map(depId => {
-                    const dependencyTask = processedTasks.find(t => t.id === depId);
-                    if (!dependencyTask) return null;
-                    
-                    // Calculate task positions based on their index
-                    const taskIndex = processedTasks.findIndex(t => t.id === task.id);
-                    const depIndex = processedTasks.findIndex(t => t.id === depId);
-                    
-                    if (taskIndex < 0 || depIndex < 0) return null;
-                    
-                    // Calculate task coordinates for drawing dependency lines
-                    const depY = depIndex * 38 + 38;
-                    const taskY = taskIndex * 38 + 38;
-                    
-                    // Calculate X coordinates based on task time positions
-                    const depTaskEndX = 200 + ((dependencyTask.endTime - timeRange.startTime) / 
-                      (timeRange.endTime - timeRange.startTime)) * (window.innerWidth - 250);
-                    const taskStartX = 200 + ((task.startTime - timeRange.startTime) / 
-                      (timeRange.endTime - timeRange.startTime)) * (window.innerWidth - 250);
-                    
-                    // Path for curved dependency line
-                    const path = `
-                      M ${depTaskEndX} ${depY}
-                      C ${depTaskEndX + 20} ${depY},
-                        ${taskStartX - 20} ${taskY},
-                        ${taskStartX} ${taskY}
-                    `;
-                    
-                    return (
-                      <g key={`${task.id}-${depId}`} className="dependency-line">
-                        <path
-                          d={path}
-                          stroke="var(--color-dependency)"
-                          strokeWidth={1.5}
-                          strokeDasharray="4 2"
-                          fill="none"
-                          className="transition-all duration-300 hover:stroke-primary hover:stroke-2"
-                        />
-                        <text
-                          x={(depTaskEndX + taskStartX) / 2}
-                          y={(depY + taskY) / 2 - 5}
-                          fontSize="8"
-                          textAnchor="middle"
-                          fill="var(--color-dependency)"
-                          className="pointer-events-auto cursor-move"
-                          onMouseDown={() => setDraggingConnection(true)}
-                          onMouseUp={() => setDraggingConnection(false)}
-                        >
-                          {format(dependencyTask.endDate, 'HH:mm')} → {format(task.startDate, 'HH:mm')}
-                        </text>
-                      </g>
-                    );
-                  });
-                })}
-              </svg>
+              {/* Gantt Bar Area */}
+              <div className="flex-1 relative h-[30px] border-b">
+                {/* Timeline Grid */}
+                <div className="absolute inset-0 flex">
+                  {timeSlots.map((_, i) => (
+                    <div key={i} className="flex-1 border-r border-gray-100"></div>
+                  ))}
+                </div>
+                
+                {/* Task Bar */}
+                <div
+                  className="absolute h-[20px] top-[5px] rounded-sm"
+                  style={{
+                    left: `${((task.startTime - timeRange.startTime) / (timeRange.endTime - timeRange.startTime)) * 100}%`,
+                    width: `${(task.duration / (timeRange.endTime - timeRange.startTime)) * 100}%`,
+                    backgroundColor: task.milestone ? 
+                      'transparent' : 
+                      task.category === 'Setup' ? '#3b82f6' : 
+                      task.category === 'Security' ? '#f59e0b' : 
+                      task.category === 'Testing' ? '#10b981' : 
+                      task.category === 'Optimization' ? '#8b5cf6' : 
+                      '#4f46e5'
+                  }}
+                >
+                  {task.milestone ? (
+                    <div className="absolute left-0 top-[50%] transform -translate-y-1/2">
+                      <Diamond className="h-5 w-5 text-red-500" />
+                    </div>
+                  ) : (
+                    <>
+                      {/* Progress Bar */}
+                      <div 
+                        className="h-full rounded-sm"
+                        style={{
+                          width: `${task.progress}%`,
+                          backgroundColor: '#818cf8'
+                        }}
+                      ></div>
+                      
+                      {/* Task Label on Bar */}
+                      <div className="absolute inset-0 flex items-center px-1 overflow-hidden">
+                        <span className="text-[9px] text-white whitespace-nowrap">
+                          {task.name} ({task.progress}%)
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+                
+                {/* Task Time Display */}
+                <div 
+                  className="absolute top-[5px] text-[8px] text-gray-500 whitespace-nowrap"
+                  style={{
+                    left: `${((task.startTime - timeRange.startTime) / (timeRange.endTime - timeRange.startTime)) * 100}%`,
+                    transform: 'translateX(-100%)'
+                  }}
+                >
+                  {format(task.startDate, 'HH:mm')}
+                </div>
+                <div 
+                  className="absolute top-[5px] text-[8px] text-gray-500 whitespace-nowrap"
+                  style={{
+                    left: `${((task.endTime - timeRange.startTime) / (timeRange.endTime - timeRange.startTime)) * 100}%`,
+                    transform: 'translateX(4px)'
+                  }}
+                >
+                  {format(task.endDate, 'HH:mm')}
+                </div>
+              </div>
             </div>
-          </div>
+          ))}
         </div>
       </div>
+      
+      {/* Dependencies visualization with draggable connections */}
+      <svg 
+        className="absolute top-0 left-0 w-full h-full pointer-events-none" 
+        style={{ zIndex: 10 }}
+      >
+        {processedTasks.map((task, taskIndex) => {
+          if (!task.dependencies?.length) return null;
+          
+          return task.dependencies.map(depId => {
+            const dependencyTask = processedTasks.find(t => t.id === depId);
+            const depIndex = processedTasks.findIndex(t => t.id === depId);
+            
+            if (!dependencyTask || depIndex < 0 || taskIndex < 0) return null;
+            
+            // Calculate positions based on chart dimensions
+            const chartWidth = document.querySelector('.flex-1')?.clientWidth || 800;
+            const rowHeight = 30;
+            
+            // Calculate Y coordinates (based on row positions)
+            const depY = (depIndex * rowHeight) + 50; // Add header offset
+            const taskY = (taskIndex * rowHeight) + 50;
+            
+            // Calculate X coordinates based on task time positions and chart width
+            const leftOffset = 280; // Width of the task name column
+            const depTaskEndX = leftOffset + ((dependencyTask.endTime - timeRange.startTime) / 
+              (timeRange.endTime - timeRange.startTime)) * chartWidth;
+            const taskStartX = leftOffset + ((task.startTime - timeRange.startTime) / 
+              (timeRange.endTime - timeRange.startTime)) * chartWidth;
+            
+            // Path for curved dependency line
+            const path = `
+              M ${depTaskEndX} ${depY + 15}
+              C ${depTaskEndX + 20} ${depY + 15},
+                ${taskStartX - 20} ${taskY + 15},
+                ${taskStartX} ${taskY + 15}
+            `;
+            
+            return (
+              <g key={`${task.id}-${depId}`} className="dependency-line">
+                <path
+                  d={path}
+                  stroke="var(--color-dependency)"
+                  strokeWidth={1.5}
+                  strokeDasharray="4 2"
+                  fill="none"
+                  className="transition-all duration-300 hover:stroke-primary hover:stroke-2"
+                />
+                <text
+                  x={(depTaskEndX + taskStartX) / 2}
+                  y={(depY + taskY) / 2 + 10}
+                  fontSize="8"
+                  textAnchor="middle"
+                  fill="var(--color-dependency)"
+                  className="pointer-events-auto cursor-move"
+                  onMouseDown={() => setDraggingConnection(true)}
+                  onMouseUp={() => setDraggingConnection(false)}
+                >
+                  {format(dependencyTask.endDate, 'HH:mm')} → {format(task.startDate, 'HH:mm')}
+                </text>
+              </g>
+            );
+          });
+        })}
+      </svg>
+      
+      {/* Current Time Line */}
+      {showCurrentTime && (
+        <div 
+          className="absolute top-[40px] bottom-0 border-l-2 border-dashed border-green-500 z-10"
+          style={{
+            left: `${280 + ((currentTime - timeRange.startTime) / (timeRange.endTime - timeRange.startTime)) * (document.querySelector('.flex-1')?.clientWidth || 800)}px`
+          }}
+        >
+          <div className="bg-green-500 text-white text-[8px] px-1 rounded absolute -translate-x-1/2">Now</div>
+        </div>
+      )}
       
       {/* Legend */}
       <div className="flex flex-wrap items-center justify-center gap-4 mt-2 px-4 pb-2">
